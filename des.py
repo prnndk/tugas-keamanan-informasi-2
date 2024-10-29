@@ -257,6 +257,16 @@ def encrypt(pt, rkb, rk):
     
     return ''.join(encrypted_blocks)
 
+def decrypt(pt, rkb, rk):
+    rkb_rev = rkb[::-1]
+    rk_rev = rk[::-1]
+    decrypt_block = []
+
+    blocks = split_blocks(pt, 16)
+    for block in blocks:
+        plain_text_bin = encrypt_block(block, rkb_rev, rk_rev)
+        decrypt_block.append(bin2hex(plain_text_bin))
+
 def generate_round_key(key):
     key = hex2bin(key)
     
