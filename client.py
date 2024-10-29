@@ -4,7 +4,7 @@ import threading
 def receive_messages(sock):
     while True:
         try:
-            message = sock.recv(1024).decode()
+            message = sock.recv(7632).decode()
             if message:
                 print("\n" + message)
                 print("Ketik pesan (format: 'to:<target_id> <message>' atau 'broadcast <message>') atau 'exit' untuk keluar: ", end="")

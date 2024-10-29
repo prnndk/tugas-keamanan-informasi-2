@@ -5,14 +5,14 @@ clients = {}
 
 def handle_client(client_socket, client_id):
     try:
-        client_name = client_socket.recv(1024).decode()
+        client_name = client_socket.recv(7632).decode()
         clients[client_id] = {'socket': client_socket, 'name': client_name}
         print(f"Client {client_id} ({client_name}) terhubung.")
         
         client_socket.send(f"ID Anda adalah {client_id}. Gunakan format pesan 'to:<target_id> <message>' atau 'broadcast <message>' untuk mengirim pesan.".encode())
 
         while True:
-            message = client_socket.recv(1024).decode()
+            message = client_socket.recv(7632).decode()
             if message:
                 print(f"Pesan dari {client_name} ({client_id}): {message}")
 
