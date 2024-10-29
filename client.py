@@ -1,6 +1,5 @@
 import socket
 import threading
-from des import *
 
 def receive_messages(sock):
     while True:
@@ -8,6 +7,7 @@ def receive_messages(sock):
             message = sock.recv(1024).decode()
             if message:
                 print("\n" + message)
+                print("Ketik pesan (format: 'to:<target_id> <message>' atau 'broadcast <message>') atau 'exit' untuk keluar: ", end="")
             else:
                 break
         except Exception as e:
@@ -16,23 +16,29 @@ def receive_messages(sock):
     print("Koneksi ke server terputus.")
     sock.close()
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(('localhost', 5555))
-
-thread = threading.Thread(target=receive_messages, args=(client,), daemon=True)
-thread.start()
-
-client_id = client.recv(1024).decode()
-print(client_id)
-
-try:
+def send_messages(sock):
     while True:
-        print("Ketik pesan (format: 'to:<target_id> <message>' atau 'broadcast <message>') atau 'exit' untuk keluar: ")
-        message = input()
-        if message.lower() == 'exit':
+        try:
+            message = input("Ketik pesan (format: 'to:<target_id> <message>' atau 'broadcast <message>') atau 'exit' untuk keluar: ")
+            if message.lower() == 'exit':
+                break
+            sock.send(message.encode())
+        except Exception as e:
+            print(f"Terjadi kesalahan dalam mengirim pesan: {e}")
             break
-        client.send(message.encode())
-except KeyboardInterrupt:
-    print("Keluar dari aplikasi.")
+    sock.close()
 
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client.connect(('localhost', 7632))
+
+client_name = input("Masukkan nama Anda: ")
+client.send(client_name.encode())
+
+receive_thread = threading.Thread(target=receive_messages, args=(client,), daemon=True)
+send_thread = threading.Thread(target=send_messages, args=(client,))
+
+receive_thread.start()
+send_thread.start()
+
+send_thread.join()
 client.close()
