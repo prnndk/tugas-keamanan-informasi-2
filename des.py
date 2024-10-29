@@ -267,6 +267,11 @@ def decrypt(pt, rkb, rk):
         plain_text_bin = encrypt_block(block, rkb_rev, rk_rev)
         decrypt_block.append(bin2hex(plain_text_bin))
 
+    decrypted_text = hex2str(''.join(decrypt_block))
+    decrypted = unpad(decrypted_text)
+
+    return decrypted
+
 def generate_round_key(key):
     key = hex2bin(key)
     
@@ -319,35 +324,3 @@ def generate_round_key(key):
         rkb.append(round_key)
         rk.append(bin2hex(round_key))
     return rkb, rk
-
-# def main():
-#     pt = input("Masukkan string untuk dienkripsi: ")
-#     padded_pt = pad(pt)
-
-#     # key = "AABB09182736CCDD"
-#     key = generate_key()
-    
-#     print("Used Generated Key:", key)
-
-#     rkb, rk = generate_round_key(key)
-
-#     print("Encryption")
-#     cipher_text = encrypt(padded_pt, rkb, rk)
-#     print("Cipher Text:", cipher_text)
-
-#     print("Decryption")
-#     rkb_rev = rkb[::-1]
-#     rk_rev = rk[::-1]
-#     decrypt_block = []
-
-#     blocks = split_blocks(cipher_text, 16)
-#     for block in blocks:
-#         plain_text_bin = encrypt_block(block, rkb_rev, rk_rev)
-#         decrypt_block.append(bin2hex(plain_text_bin))
-
-#     decrypted_text = hex2str(''.join(decrypt_block))
-#     decrypted = unpad(decrypted_text)
-#     print("Plain Text:", decrypted)
-    
-# # if __name__ == '__main__':
-# #     main()
