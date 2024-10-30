@@ -31,33 +31,34 @@ class Client:
                 if message:
                     if message.startswith("NOTENC:"):
                         decrypted_text = message[7:]
-                        print("\n" + decrypted_text)
+                        print(decrypted_text)
                     elif message.startswith("Dari "):
                         parts = message.split(": ", 1)
                         sender_info = parts[0]
                         encrypted_text = parts[1]
                         decrypted_text = decrypt(encrypted_text, self.rkb, self.rk)
-                        print(f"\n{sender_info}: {decrypted_text}")
+                        print(f"{sender_info}: {decrypted_text}")
                     elif message.startswith("Broadcast dari "):
                         parts = message.split(": ", 1)
                         broadcast_info = parts[0]
                         encrypted_text = parts[1]
                         decrypted_text = decrypt(encrypted_text, self.rkb, self.rk)
-                        print(f"\n{broadcast_info}: {decrypted_text}")
+                        print(f"{broadcast_info}: {decrypted_text}")
                     else:
                         continue
                 else:
                     print("Koneksi ke server terputus.")
+                    self.socket.close()
                     break
             except Exception as e:
                 print(f"Terjadi kesalahan dalam menerima pesan: {e}")
-                break
+                continue
         self.socket.close()
 
     def send_message(self):
         while True:
             try:
-                message = input()
+                message = input("")
                 if message.lower() == 'exit':
                     self.socket.close()
                     os._exit(0)
@@ -78,7 +79,7 @@ class Client:
                 self.socket.send(message_to_send.encode())
             except Exception as e:
                 print(f"Terjadi kesalahan dalam mengirim pesan: {e}")
-                break
+                continue
         self.socket.close()
 
 if __name__ == '__main__':
