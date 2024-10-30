@@ -1,111 +1,65 @@
 import socket
-from threading import Thread
-from des import *
-
-
-# while True:
-#     key = input("Masukkan key anda: ")
-#
-#     if len(key) == 8:
-#         break
-#     else:
-#         print("Key harus 8 karakter")
-#
-# key = str2hex(key)
-# rkb,rk = generate_round_key(key)
-
-# def handle_key(client):
-#     if key == client:
-#         return True
-#
-#     return False
+import threading
 
 class Server:
-    Clients = []
+    clients = {}
 
-    # Create a TCP socket over IPv4. Accept at max 5 connections.
     def __init__(self, HOST, PORT):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.bind((HOST, PORT))
         self.socket.listen(5)
-        self.rk = []
-        self.rkb = []
-        print('Server waiting for connection....')
+        print("Server berjalan...")
 
     def listen(self):
         while True:
             client_socket, client_address = self.socket.accept()
-            print(f"Connection from {client_address}")
+            client_id = str(client_address[1])
+            client_thread = threading.Thread(target=self.handle_client, args=(client_socket, client_id))
+            client_thread.start()
 
-            client_key = client_socket.recv(1024).decode()
-
-            print(client_key)
-
-            self.rkb, self.rk = generate_round_key(client_key)
-
-            # if not handle_key(client_key):
-            #   print(f"Key from {client_address} is invalid")
-            #   client_socket.close()
-            #   continue
-
-            client_name = client_socket.recv(1024).decode()
-            client = {'client_name': client_name, 'client_socket': client_socket}
-
-            message = f"Welcome, {client_name} has joined the chat!"
-            message = pad(message)
-            encrypted_text = encrypt(message, self.rkb, self.rk)
-
-            self.broadcast_message(client_name, encrypted_text)
-
-            Server.Clients.append(client)
-            Thread(target=self.handle_new_client, args=(client,)).start()
-
-    def handle_new_client(self, client):
-        client_name = client['client_name']
-        client_socket = client['client_socket']
-
+    def handle_client(self, client_socket, client_id):
         try:
+            client_name = client_socket.recv(7632).decode()
+            Server.clients[client_id] = {'socket': client_socket, 'name': client_name}
+            print(f"Client {client_id} ({client_name}) terhubung.")
+            
+            response_message = f"NOTENC:ID Anda adalah {client_id}. Gunakan format pesan 'to:<target_id> <message terenkripsi>' atau 'broadcast <message terenkripsi>' untuk mengirim pesan."
+            client_socket.send(response_message.encode())
+
             while True:
-                try:
-                    client_message = client_socket.recv(1024).decode()
+                message = client_socket.recv(7632).decode()
+                if message:
+                    if message.startswith("to:"):
+                        parts = message.split(" ", 2)
+                        if len(parts) < 3:
+                            continue
+                        target_id = parts[1]
+                        encrypted_message = parts[2]
 
-                    # Check for exit message or empty message indicating disconnection
-                    if client_message.strip() == client_name + ": exit" or not client_message.strip():
-                        message = f"{client_name} has left the chat!"
-                        message = pad(message)
-                        encrypted_text = encrypt(message, self.rkb, self.rk)
-                        self.broadcast_message(client_name, encrypted_text)
+                        if target_id in Server.clients:
+                            target_socket = Server.clients[target_id]['socket']
+                            sender_name = Server.clients[client_id]['name']
+                            forward_message = f"Dari {sender_name} ({client_id}): {encrypted_message}"
+                            target_socket.send(forward_message.encode())
+                            print(f"Mengirim pesan dari {client_name} ke {Server.clients[target_id]['name']}: {encrypted_message}")
+                        else:
+                            client_socket.send(f"NOTENC:Client {target_id} tidak ditemukan.".encode())
 
-                        # Remove client from the list and close the socket
-                        Server.Clients.remove(client)
-                        client_socket.close()
-                        break
-                    else:
-                        # Send the message to all other clients
-                        self.broadcast_message(client_name, client_message)
-
-                except ConnectionResetError:
-                    # Handle unexpected client disconnection
-                    print(f"{client_name} has unexpectedly disconnected.")
+                    elif message.startswith("broadcast"):
+                        encrypted_message = message.split(" ", 1)[1]
+                        broadcast_message = f"Broadcast dari {Server.clients[client_id]['name']} ({client_id}): {encrypted_message}"
+                        print(f"Mengirim Broadcast dari {client_name}: {encrypted_message}")
+                        for cid, client_info in Server.clients.items():
+                            if cid != client_id:
+                                client_info['socket'].send(broadcast_message.encode())
+                else:
                     break
-
-        finally:
-            # Ensure cleanup if disconnection occurs
-            if client in Server.Clients:
-                Server.Clients.remove(client)
-            client_socket.close()
-
-    def broadcast_message(self, sender_name, message):
-        for client in self.Clients:
-            client_socket = client['client_socket']
-            client_name = client['client_name']
-            try:
-                if client_name != sender_name:
-                    client_socket.send(message.encode())
-            except BrokenPipeError:
-                print(f"Connection to {client_name} has been lost.")
-                self.Clients.remove(client)
-
+        except Exception as e:
+            print(f"Kesalahan pada client {client_id}: {e}")
+        
+        client_socket.close()
+        del Server.clients[client_id]
+        print(f"Client {client_id} ({client_name}) terputus.")
 
 if __name__ == '__main__':
     server = Server('127.0.0.1', 7632)
